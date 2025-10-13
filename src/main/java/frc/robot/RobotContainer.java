@@ -12,12 +12,14 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.trajectory.TrajectoryConfig;
 import edu.wpi.first.math.trajectory.TrajectoryGenerator;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.XboxController;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.ModuleConstants;
 import frc.robot.Constants.OIConstants;
 import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.subsystems.SimulatedDriveSubsystem;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -33,14 +35,23 @@ import java.util.List;
  * (including subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
-  // The robot's subsystems
-  private final DriveSubsystem m_robotDrive = new DriveSubsystem();
+  // The robot's subsystems - use simulation in simulator, real hardware on robot
+  private final DriveSubsystem m_robotDrive;
 
   // The driver's controller
   XboxController m_driverController = new XboxController(OIConstants.kDriverControllerPort);
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
+    // Create appropriate drive subsystem based on whether we're running in simulation
+    if (RobotBase.isSimulation()) {
+      m_robotDrive = new SimulatedDriveSubsystem();
+      System.out.println("Using Maple-Sim Swerve Drive Simulation");
+    } else {
+      m_robotDrive = new DriveSubsystem();
+      System.out.println("Using Real Swerve Drive Hardware");
+    }
+
     // Configure the button bindings
     configureButtonBindings();
 
@@ -54,9 +65,9 @@ public class RobotContainer {
                     // Multiply by max speed to map the joystick unitless inputs to actual units.
                     // This will map the [-1, 1] to [max speed backwards, max speed forwards],
                     // converting them to actual units.
-                    m_driverController.getLeftY() * DriveConstants.kMaxSpeedMetersPerSecond,
-                    m_driverController.getLeftX() * DriveConstants.kMaxSpeedMetersPerSecond,
-                    m_driverController.getRightX()
+                    -m_driverController.getLeftY() * DriveConstants.kMaxSpeedMetersPerSecond,
+                    -m_driverController.getLeftX() * DriveConstants.kMaxSpeedMetersPerSecond,
+                    -m_driverController.getRightX()
                         * ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond,
                     false),
             m_robotDrive));
@@ -68,7 +79,11 @@ public class RobotContainer {
    * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then calling passing it to a
    * {@link JoystickButton}.
    */
-  private void configureButtonBindings() {}
+  private void configureButtonBindings() {
+    // Add button to reset heading (A button)
+    new JoystickButton(m_driverController, XboxController.Button.kA.value)
+        .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
+  }
 
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
