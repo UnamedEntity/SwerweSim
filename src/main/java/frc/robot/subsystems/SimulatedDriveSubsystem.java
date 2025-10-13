@@ -5,17 +5,21 @@
 package frc.robot.subsystems;
 
 import org.ironmaple.simulation.SimulatedArena;
-import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
 import org.ironmaple.simulation.drivesims.SelfControlledSwerveDriveSimulation;
+import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
 import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
 import org.ironmaple.simulation.drivesims.configs.SwerveModuleSimulationConfig;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructArrayPublisher;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -25,11 +29,17 @@ import frc.robot.Constants.ModuleConstants;
 /**
  * Simulated swerve drive subsystem that extends DriveSubsystem.
  * Uses Maple-Sim physics simulation for realistic robot behavior in simulation mode.
- * This uses the SelfControlledSwerveDriveSimulation which handles motor control automatically.
+ * 
+ * This implementation uses SelfControlledSwerveDriveSimulation which manages
+ * the simulated drivetrain with closed-loop control, similar to real hardware.
  */
 public class SimulatedDriveSubsystem extends DriveSubsystem {
   private final SelfControlledSwerveDriveSimulation simulatedDrive;
   private final Field2d field2d;
+  
+  // Publishers for 3D visualization in AdvantageScope
+  private final StructArrayPublisher<Pose3d> robotPosePublisher;
+  private final StructArrayPublisher<Pose3d> gamePiecePublisher;
 
   /** Creates a new SimulatedDriveSubsystem. */
   public SimulatedDriveSubsystem() {
@@ -37,131 +47,155 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
     
     // Configure the drivetrain simulation with your robot's physical parameters
     final DriveTrainSimulationConfig config = DriveTrainSimulationConfig.Default()
-        // Configure swerve module with your motors and gear ratios
         .withSwerveModule(
             new SwerveModuleSimulationConfig(
-                DCMotor.getNEO(1),      // Drive motor (adjust if using different motors)
-                DCMotor.getNeo550(1),   // Steer motor (adjust if using different motors)
-                6.75,                   // Drive gear ratio (adjust to your actual ratio)
-                12.8,                   // Steer gear ratio (adjust to your actual ratio)
+                DCMotor.getNEO(1),      // Drive motor
+                DCMotor.getNeo550(1),   // Steer motor
+                6.75,                   // Drive gear ratio
+                12.8,                   // Steer gear ratio
                 Units.Volts.of(0.1),    // Drive friction voltage
                 Units.Volts.of(0.1),    // Steer friction voltage
-                Units.Meters.of(ModuleConstants.kWheelDiameterMeters / 2.0), // Wheel radius
-                Units.KilogramSquareMeters.of(0.025), // Steer moment of inertia
+                Units.Meters.of(ModuleConstants.kWheelDiameterMeters / 2.0),
+                Units.KilogramSquareMeters.of(0.025),
                 1.0                     // Wheel coefficient of friction
             )
         )
-        // Configure track dimensions from your constants
         .withTrackLengthTrackWidth(
             Units.Meters.of(DriveConstants.kWheelBase),
             Units.Meters.of(DriveConstants.kTrackWidth)
         )
-        // Configure bumper size (adjust to your robot size in meters)
         .withBumperSize(
             Units.Meters.of(0.9),
             Units.Meters.of(0.9)
         );
     
-    // Create the SwerveDriveSimulation
-    SwerveDriveSimulation driveSimulation = new SwerveDriveSimulation(config, new Pose2d());
+    // Create the base SwerveDriveSimulation
+    SwerveDriveSimulation baseSim = new SwerveDriveSimulation(
+        config, 
+        new Pose2d(8.0, 4.0, new Rotation2d())
+    );
     
-    // Wrap it in SelfControlledSwerveDriveSimulation for automatic motor control
-    this.simulatedDrive = new SelfControlledSwerveDriveSimulation(driveSimulation);
+    // Wrap it with SelfControlledSwerveDriveSimulation for automatic control
+    this.simulatedDrive = new SelfControlledSwerveDriveSimulation(baseSim);
     
-    // Register to simulation world for physics updates
-    SimulatedArena.getInstance().addDriveTrainSimulation(simulatedDrive.getDriveTrainSimulation());
+    // Register the base simulation to the world for physics updates
+    SimulatedArena.getInstance().addDriveTrainSimulation(baseSim);
     
-    // Create field widget for visualization on dashboard
+    // Create field widget for 2D visualization on dashboard
     field2d = new Field2d();
     SmartDashboard.putData("Simulation Field", field2d);
     
-    System.out.println("Maple-Sim Swerve Drive Simulation initialized");
+    // Setup 3D visualization publishers for AdvantageScope
+    robotPosePublisher = NetworkTableInstance.getDefault()
+        .getStructArrayTopic("AdvantageScope/Robot", Pose3d.struct)
+        .publish();
+        
+    gamePiecePublisher = NetworkTableInstance.getDefault()
+        .getStructArrayTopic("AdvantageScope/GamePieces", Pose3d.struct)
+        .publish();
+    
+    System.out.println("=== Maple-Sim Swerve Drive Simulation initialized ===");
   }
 
   @Override
   public void periodic() {
-    // Update the simulation - this handles motor control and odometry
+    // DO NOT call super.periodic() - it tries to use hardware encoders that don't exist
+    
+    // Update the simulated drive's odometry
     simulatedDrive.periodic();
     
-    // Update parent class periodic (for any additional logic)
-    super.periodic();
+    // Get poses (cached to avoid multiple calls)
+    Pose2d actualPose = simulatedDrive.getActualPoseInSimulationWorld();
+    Pose2d odometryPose = simulatedDrive.getOdometryEstimatedPose();
     
-    // Update field visualization
-    field2d.setRobotPose(simulatedDrive.getActualPoseInSimulationWorld());
-    field2d.getObject("Odometry").setPose(simulatedDrive.getOdometryEstimatedPose());
+    // Update 2D field visualization
+    field2d.setRobotPose(actualPose);
+    field2d.getObject("odometry").setPose(odometryPose);
     
-    // Optional: Display simulation data on dashboard
-    SmartDashboard.putNumber("Sim Heading", getHeading());
-    SmartDashboard.putNumber("Sim X", getPose().getX());
-    SmartDashboard.putNumber("Sim Y", getPose().getY());
+    // Publish 3D robot pose for AdvantageScope (less frequently to reduce overhead)
+    robotPosePublisher.set(new Pose3d[] { 
+      new Pose3d(actualPose.getX(), actualPose.getY(), 0.0,
+                 new Rotation3d(0, 0, actualPose.getRotation().getRadians()))
+    });
+    
+    // Publish game pieces (simplified)
+    gamePiecePublisher.set(new Pose3d[0]); // Temporarily disable to improve performance
+    
+    // Display essential data only
+    SmartDashboard.putNumber("Sim X", actualPose.getX());
+    SmartDashboard.putNumber("Sim Y", actualPose.getY());
+    SmartDashboard.putNumber("Sim Heading", actualPose.getRotation().getDegrees());
+  }
+
+  @Override
+  public void simulationPeriodic() {
+    // SimulatedArena handles physics updates automatically
   }
 
   @Override
   public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
-    // Use the simplified simulation API to command the drive
+    // Debug output
+    if (Math.abs(xSpeed) > 0.01 || Math.abs(ySpeed) > 0.01 || Math.abs(rot) > 0.01) {
+      System.out.println(String.format("Drive: x=%.2f y=%.2f rot=%.2f fieldRel=%b", 
+          xSpeed, ySpeed, rot, fieldRelative));
+    }
+    
+    // Create chassis speeds
+    ChassisSpeeds speeds = new ChassisSpeeds(xSpeed, ySpeed, rot);
+    
+    // Use the SelfControlledSwerveDriveSimulation's runChassisSpeeds method
+    // Parameters: speeds, centerOfRotation, fieldRelative, isOpenLoop
     simulatedDrive.runChassisSpeeds(
-        new ChassisSpeeds(xSpeed, ySpeed, rot),
-        new Translation2d(), // Center of rotation (robot center)
-        fieldRelative,
-        true  // Open loop control
+        speeds, 
+        new Translation2d(),  // Center of rotation (0,0 = center of robot)
+        fieldRelative,        // Whether speeds are field-relative
+        true                  // isOpenLoop - true for teleop driving
     );
   }
 
   @Override
   public void setModuleStates(SwerveModuleState[] desiredStates) {
-    // Use the simplified simulation API to set module states
+    // Use the SelfControlledSwerveDriveSimulation's runSwerveStates method
+    // This is used for autonomous trajectory following
     simulatedDrive.runSwerveStates(desiredStates);
   }
 
   @Override
   public Pose2d getPose() {
-    // Return the odometry-estimated pose (includes drift like real robot)
+    // Return the odometry-estimated pose (what the robot thinks its position is)
     return simulatedDrive.getOdometryEstimatedPose();
   }
 
   @Override
   public void resetOdometry(Pose2d pose) {
-    // Reset both the simulation world pose and odometry
+    // Set both the simulation world pose and reset odometry
     simulatedDrive.setSimulationWorldPose(pose);
     simulatedDrive.resetOdometry(pose);
-  }
-
-  @Override
-  public double getHeading() {
-    // Get heading from odometry (this matches what real robot would use)
-    return simulatedDrive.getOdometryEstimatedPose().getRotation().getDegrees();
+    System.out.println("Reset odometry to: " + pose);
   }
 
   @Override
   public void zeroHeading() {
-    // Reset heading to zero
-    Pose2d currentPose = simulatedDrive.getActualPoseInSimulationWorld();
-    Pose2d newPose = new Pose2d(currentPose.getTranslation(), new Rotation2d());
-    simulatedDrive.setSimulationWorldPose(newPose);
-    simulatedDrive.resetOdometry(newPose);
+    Pose2d currentPose = getPose();
+    resetOdometry(new Pose2d(currentPose.getTranslation(), new Rotation2d()));
+  }
+
+  @Override
+  public double getHeading() {
+    // Use the odometry-estimated pose to get the heading
+    // This matches what the real robot would report
+    return getPose().getRotation().getDegrees();
   }
 
   @Override
   public double getTurnRate() {
-    // Get turn rate from simulated chassis speeds
-    ChassisSpeeds speeds = simulatedDrive.getMeasuredSpeedsFieldRelative(true);
+    // Get the measured speeds and extract the angular velocity
+    ChassisSpeeds speeds = simulatedDrive.getMeasuredSpeedsFieldRelative(false);
     return Math.toDegrees(speeds.omegaRadiansPerSecond);
   }
-
-  /**
-   * Gets the simulated chassis speeds for advanced control.
-   * @return The measured chassis speeds from simulation
-   */
-  public ChassisSpeeds getMeasuredSpeeds() {
-    return simulatedDrive.getMeasuredSpeedsFieldRelative(true);
-  }
-
-  /**
-   * Gets the actual simulated pose (ground truth).
-   * Useful for comparing odometry accuracy.
-   * @return The true simulated pose
-   */
-  public Pose2d getSimulatedPose() {
-    return simulatedDrive.getActualPoseInSimulationWorld();
+  
+  @Override
+  public void resetEncoders() {
+    // Not needed for simulation
   }
 }

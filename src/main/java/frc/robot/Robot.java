@@ -4,6 +4,10 @@
 
 package frc.robot;
 
+import org.ironmaple.simulation.SimulatedArena;
+import org.ironmaple.simulation.seasonspecific.crescendo2024.CrescendoNoteOnField;
+
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -50,6 +54,21 @@ public class Robot extends TimedRobot {
 
   @Override
   public void disabledPeriodic() {}
+
+  /** This function is called once when simulation is started. */
+  @Override
+  public void simulationInit() {
+    // Add some game pieces to the field for 3D visualization
+    SimulatedArena.getInstance().addGamePiece(
+        new CrescendoNoteOnField(new Translation2d(3, 3))
+    );
+    SimulatedArena.getInstance().addGamePiece(
+        new CrescendoNoteOnField(new Translation2d(5, 5))
+    );
+    SimulatedArena.getInstance().addGamePiece(
+        new CrescendoNoteOnField(new Translation2d(7, 3))
+    );
+  }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override

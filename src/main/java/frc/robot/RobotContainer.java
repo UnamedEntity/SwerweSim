@@ -26,6 +26,7 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SwerveControllerCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import java.util.List;
 
 /*
@@ -51,25 +52,70 @@ public class RobotContainer {
       m_robotDrive = new DriveSubsystem();
       System.out.println("Using Real Swerve Drive Hardware");
     }
+    if (RobotBase.isSimulation()) {
+        // Test: drive forward at 1 m/s for testing
+        m_robotDrive.setDefaultCommand(
+            new RunCommand(
+                () -> m_robotDrive.drive(1.0, 0, 0, false), // Drive forward
+                m_robotDrive
+            )
+        );
+    }
 
     // Configure the button bindings
     configureButtonBindings();
 
-    // Configure default commands
+    // Configure default commands with keyboard support
     m_robotDrive.setDefaultCommand(
-        // The left stick controls translation of the robot.
-        // Turning is controlled by the X axis of the right stick.
         new RunCommand(
-            () ->
-                m_robotDrive.drive(
-                    // Multiply by max speed to map the joystick unitless inputs to actual units.
-                    // This will map the [-1, 1] to [max speed backwards, max speed forwards],
-                    // converting them to actual units.
-                    -m_driverController.getLeftY() * DriveConstants.kMaxSpeedMetersPerSecond,
-                    -m_driverController.getLeftX() * DriveConstants.kMaxSpeedMetersPerSecond,
-                    -m_driverController.getRightX()
-                        * ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond,
-                    false),
+            () -> {
+                double xSpeed = 0;
+                double ySpeed = 0;
+                double rot = 0;
+                
+                // Check if we're using keyboard or controller
+                // If any keyboard keys are pressed, use keyboard, otherwise use controller
+                boolean usingKeyboard = false;
+                
+                // Forward/Backward (W/S keys)
+                if (m_driverController.getYButton()) { // Y button = W key in sim
+                    xSpeed = DriveConstants.kMaxSpeedMetersPerSecond;
+                    usingKeyboard = true;
+                }
+                if (m_driverController.getAButton()) { // A button = S key in sim
+                    xSpeed = -DriveConstants.kMaxSpeedMetersPerSecond;
+                    usingKeyboard = true;
+                }
+                
+                // Left/Right strafing (A/D keys)
+                if (m_driverController.getXButton()) { // X button = A key in sim
+                    ySpeed = DriveConstants.kMaxSpeedMetersPerSecond;
+                    usingKeyboard = true;
+                }
+                if (m_driverController.getBButton()) { // B button = D key in sim
+                    ySpeed = -DriveConstants.kMaxSpeedMetersPerSecond;
+                    usingKeyboard = true;
+                }
+                
+                // Rotation (Q/E keys)
+                if (m_driverController.getLeftBumper()) { // LB = Q key in sim
+                    rot = ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
+                    usingKeyboard = true;
+                }
+                if (m_driverController.getRightBumper()) { // RB = E key in sim
+                    rot = -ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
+                    usingKeyboard = true;
+                }
+                
+                // If not using keyboard, fall back to controller joysticks
+                if (!usingKeyboard) {
+                    xSpeed = -m_driverController.getLeftY() * DriveConstants.kMaxSpeedMetersPerSecond;
+                    ySpeed = -m_driverController.getLeftX() * DriveConstants.kMaxSpeedMetersPerSecond;
+                    rot = -m_driverController.getRightX() * ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
+                }
+                
+                m_robotDrive.drive(xSpeed, ySpeed, rot, false);
+            },
             m_robotDrive));
   }
 
@@ -80,8 +126,8 @@ public class RobotContainer {
    * {@link JoystickButton}.
    */
   private void configureButtonBindings() {
-    // Add button to reset heading (A button)
-    new JoystickButton(m_driverController, XboxController.Button.kA.value)
+    // Reset heading with Back/Select button (or Space in keyboard mode)
+    new JoystickButton(m_driverController, XboxController.Button.kBack.value)
         .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
   }
 

@@ -1,0 +1,26 @@
+{
+    "units": "meters",
+  
+    "field": {
+      "size": [16.5, 8.2],
+      "walls": true
+    },
+  
+    "robots": [
+      {
+        "name": "swervebot",
+        "pose": [0.0, 0.0, 0.0]
+      }
+    ],
+  
+    "obstacles": [
+      {
+        "type": "box",
+        "pose": [3.0, 2.0, 0.0],
+        "size": [1.0, 1.0, 1.0]
+      }
+    ]
+  }
+  
+  
+  
