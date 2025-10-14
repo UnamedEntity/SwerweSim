@@ -118,6 +118,8 @@ public class DriveSubsystem extends SubsystemBase {
    * @param fieldRelative Whether the provided x and y speeds are relative to the field.
    */
   public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
+    System.out.println(String.format("Drive: x=%.2f, y=%.2f, rot=%.2f, fieldRelative=%b", 
+        xSpeed, ySpeed, rot, fieldRelative));
     var swerveModuleStates =
         DriveConstants.kDriveKinematics.toSwerveModuleStates(
             ChassisSpeeds.discretize(
@@ -132,6 +134,7 @@ public class DriveSubsystem extends SubsystemBase {
     m_frontRight.setDesiredState(swerveModuleStates[1]);
     m_rearLeft.setDesiredState(swerveModuleStates[2]);
     m_rearRight.setDesiredState(swerveModuleStates[3]);
+    System.out.println("Simulated Pose: " + simulatedDrive.getActualPoseInSimulationWorld());
   }
 
   /**
