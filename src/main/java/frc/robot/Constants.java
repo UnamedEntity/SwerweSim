@@ -114,4 +114,13 @@ public final class Constants {
         new TrapezoidProfile.Constraints(
             kMaxAngularSpeedRadiansPerSecond, kMaxAngularSpeedRadiansPerSecondSquared);
   }
+
+  public static final class IntakeConstants {
+    // Motor ports
+    public static final int kIntakeMotorPort = 8;
+    public static final int kNoteSensorPort = 0;
+
+    // Motor settings
+    public static final double kIntakeVoltage = 6.0; // 6 volts for coral intake
+  }
 }

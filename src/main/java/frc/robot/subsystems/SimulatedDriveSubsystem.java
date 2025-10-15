@@ -35,6 +35,7 @@ import frc.robot.Constants.ModuleConstants;
  */
 public class SimulatedDriveSubsystem extends DriveSubsystem {
   private final SelfControlledSwerveDriveSimulation simulatedDrive;
+  private final SwerveDriveSimulation baseSimulation;
   private final Field2d field2d;
   
   // Publishers for 3D visualization in AdvantageScope
@@ -70,16 +71,16 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
         );
     
     // Create the base SwerveDriveSimulation
-    SwerveDriveSimulation baseSim = new SwerveDriveSimulation(
+    this.baseSimulation = new SwerveDriveSimulation(
         config, 
         new Pose2d(8.0, 4.0, new Rotation2d())
     );
     
     // Wrap it with SelfControlledSwerveDriveSimulation for automatic control
-    this.simulatedDrive = new SelfControlledSwerveDriveSimulation(baseSim);
+    this.simulatedDrive = new SelfControlledSwerveDriveSimulation(baseSimulation);
     
     // Register the base simulation to the world for physics updates
-    SimulatedArena.getInstance().addDriveTrainSimulation(baseSim);
+    SimulatedArena.getInstance().addDriveTrainSimulation(baseSimulation);
     
     // Create field widget for 2D visualization on dashboard
     field2d = new Field2d();
@@ -118,8 +119,13 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
                    new Rotation3d(0, 0, getPose().getRotation().getRadians()))
     });
     
-    // Publish game pieces (simplified)
-    gamePiecePublisher.set(new Pose3d[0]); // Temporarily disable to improve performance
+    // Publish coral pieces for AdvantageScope 3D visualization
+    Pose3d[] coralPieces = new Pose3d[] {
+        // Add coral piece positions here - you can get these from the intake simulation
+        new Pose3d(2.0, 3.0, 0.1, new Rotation3d()), // Example coral piece at (2,3)
+        new Pose3d(5.0, 1.0, 0.1, new Rotation3d())  // Another coral piece at (5,1)
+    };
+    gamePiecePublisher.set(coralPieces);
     
     // Display essential data only
     SmartDashboard.putNumber("Sim X", actualPose.getX());
@@ -188,6 +194,11 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
   @Override
   public void resetEncoders() {
     // Not needed for simulation
+  }
+
+  /** Get the underlying drive simulation for other subsystems to use */
+  public org.ironmaple.simulation.drivesims.AbstractDriveTrainSimulation getDriveSimulation() {
+    return baseSimulation;
   }
 
 }

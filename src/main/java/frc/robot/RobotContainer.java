@@ -20,13 +20,17 @@ import frc.robot.Constants.ModuleConstants;
 import frc.robot.Constants.OIConstants;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.SimulatedDriveSubsystem;
+import frc.robot.subsystems.intake.IntakeSubsystem;
+import frc.robot.subsystems.intake.IntakeIOSim;
+import frc.robot.commands.intake.IntakeCommand;
+import frc.robot.commands.intake.OuttakeCommand;
+import frc.robot.commands.intake.StopIntakeCommand;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SwerveControllerCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import java.util.List;
 
 /*
@@ -38,6 +42,7 @@ import java.util.List;
 public class RobotContainer {
   // The robot's subsystems - use simulation in simulator, real hardware on robot
   private final DriveSubsystem m_robotDrive;
+  private final IntakeSubsystem m_intake;
 
   // The driver's controller
   XboxController m_driverController = new XboxController(OIConstants.kDriverControllerPort);
@@ -53,6 +58,25 @@ public class RobotContainer {
       System.out.println("Using Real Swerve Drive Hardware");
     }
     
+    // Create intake subsystem
+    m_intake = new IntakeSubsystem();
+    
+    // Set up simulation IO if needed
+    if (RobotBase.isSimulation() && m_robotDrive instanceof SimulatedDriveSubsystem) {
+      System.out.println("Setting up intake simulation IO...");
+      SimulatedDriveSubsystem simDrive = (SimulatedDriveSubsystem) m_robotDrive;
+      // Get the drive simulation from the simulated drive subsystem
+      var driveSim = simDrive.getDriveSimulation();
+      System.out.println("Got drive simulation: " + (driveSim != null ? "not null" : "NULL"));
+      IntakeIOSim intakeSim = new IntakeIOSim(driveSim);
+      System.out.println("Created IntakeIOSim: " + (intakeSim != null ? "not null" : "NULL"));
+      m_intake.setSimulationIO(intakeSim);
+      System.out.println("Set simulation IO on intake subsystem");
+    } else {
+      System.out.println("NOT setting up simulation IO - isSimulation=" + RobotBase.isSimulation() + 
+                        ", isSimulatedDrive=" + (m_robotDrive instanceof SimulatedDriveSubsystem));
+    }
+    
     // Now that m_robotDrive is initialized, configure buttons
     configureButtonBindings();
 
@@ -64,10 +88,10 @@ public class RobotContainer {
                 double ySpeed = 1;
                 double rot = 1;
                 
-                // Check if we're using keyboard or controller
+                                // Check if we're using keyboard or controller
                 // If any keyboard keys are pressed, use keyboard, otherwise use controller
                 boolean usingKeyboard = false;
-                
+
                 // Forward/Backward (W/S keys)
                 if (m_driverController.getYButton()) { // Y button = W key in sim
                     xSpeed = DriveConstants.kMaxSpeedMetersPerSecond;
@@ -77,7 +101,7 @@ public class RobotContainer {
                     xSpeed = -DriveConstants.kMaxSpeedMetersPerSecond;
                     usingKeyboard = true;
                 }
-                
+
                 // Left/Right strafing (A/D keys)
                 if (m_driverController.getXButton()) { // X button = A key in sim
                     ySpeed = DriveConstants.kMaxSpeedMetersPerSecond;
@@ -87,7 +111,7 @@ public class RobotContainer {
                     ySpeed = -DriveConstants.kMaxSpeedMetersPerSecond;
                     usingKeyboard = true;
                 }
-                
+
                 // Rotation (Q/E keys)
                 if (m_driverController.getLeftBumper()) { // LB = Q key in sim
                     rot = ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
@@ -97,17 +121,34 @@ public class RobotContainer {
                     rot = -ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
                     usingKeyboard = true;
                 }
-                
-                // If not using keyboard, fall back to controller joysticks
+
+                // If not using keyboard, use controller joysticks
                 if (!usingKeyboard) {
                     xSpeed = -m_driverController.getLeftY() * DriveConstants.kMaxSpeedMetersPerSecond;
                     ySpeed = -m_driverController.getLeftX() * DriveConstants.kMaxSpeedMetersPerSecond;
                     rot = -m_driverController.getRightX() * ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
                 }
+
+                // Intake controls using A and B buttons
+                if (m_driverController.getAButton()) { // A button for intake
+                    System.out.println("Intake: Starting intake (A button pressed)");
+                    m_intake.startIntake();
+                } else if (m_driverController.getBButton()) { // B button for outtake
+                    System.out.println("Intake: Reversing intake (B button pressed)");
+                    m_intake.reverseIntake();
+                } else {
+                    m_intake.stopIntake();
+                }
+
+                m_robotDrive.drive(xSpeed, ySpeed, rot, false);
+                
                 
                 m_robotDrive.drive(xSpeed, ySpeed, rot, false);
             },
             m_robotDrive));
+    
+    // Set default command for intake subsystem (idle command)
+    m_intake.setDefaultCommand(new StopIntakeCommand(m_intake));
   }
 
   /**
@@ -120,6 +161,19 @@ public class RobotContainer {
     // Reset heading with Back/Select button (or Space in keyboard mode)
     new JoystickButton(m_driverController, XboxController.Button.kBack.value)
         .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
+
+    // Intake controls
+    // Y button - intake coral pieces
+    new JoystickButton(m_driverController, XboxController.Button.kY.value)
+        .whileTrue(new IntakeCommand(m_intake));
+    
+    // X button - outtake coral pieces  
+    new JoystickButton(m_driverController, XboxController.Button.kX.value)
+        .whileTrue(new OuttakeCommand(m_intake));
+    
+    // Start button - stop intake
+    new JoystickButton(m_driverController, XboxController.Button.kStart.value)
+        .onTrue(new StopIntakeCommand(m_intake));
   }
 
   /**
