@@ -113,9 +113,9 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
     field2d.getObject("odometry").setPose(odometryPose);
     
     // Publish 3D robot pose for AdvantageScope (less frequently to reduce overhead)
-    robotPosePublisher.set(new Pose3d[] { 
-      new Pose3d(actualPose.getX(), actualPose.getY(), 0.0,
-                 new Rotation3d(0, 0, actualPose.getRotation().getRadians()))
+    robotPosePublisher.set(new Pose3d[] {
+        new Pose3d(getPose().getX(), getPose().getY(), 0.0,
+                   new Rotation3d(0, 0, getPose().getRotation().getRadians()))
     });
     
     // Publish game pieces (simplified)
@@ -134,24 +134,15 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
 
   @Override
   public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
-    // Debug output
-    if (Math.abs(xSpeed) > 0.01 || Math.abs(ySpeed) > 0.01 || Math.abs(rot) > 0.01) {
-      System.out.println(String.format("Drive: x=%.2f y=%.2f rot=%.2f fieldRel=%b", 
-          xSpeed, ySpeed, rot, fieldRelative));
-    }
-    
-    // Create chassis speeds
-    ChassisSpeeds speeds = new ChassisSpeeds(xSpeed, ySpeed, rot);
-    
-    // Use the SelfControlledSwerveDriveSimulation's runChassisSpeeds method
-    // Parameters: speeds, centerOfRotation, fieldRelative, isOpenLoop
-    simulatedDrive.runChassisSpeeds(
-        speeds, 
-        new Translation2d(),  // Center of rotation (0,0 = center of robot)
-        fieldRelative,        // Whether speeds are field-relative
-        true                  // isOpenLoop - true for teleop driving
-    );
+      // Create chassis speeds
+      ChassisSpeeds speeds = fieldRelative
+          ? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rot, getPose().getRotation())
+          : new ChassisSpeeds(xSpeed, ySpeed, rot);
+  
+      // Send the chassis speeds to the simulation
+      simulatedDrive.runChassisSpeeds(speeds, new Translation2d(), fieldRelative, false);
   }
+
 
   @Override
   public void setModuleStates(SwerveModuleState[] desiredStates) {
@@ -198,4 +189,5 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
   public void resetEncoders() {
     // Not needed for simulation
   }
+
 }

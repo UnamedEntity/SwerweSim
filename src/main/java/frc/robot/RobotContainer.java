@@ -52,26 +52,17 @@ public class RobotContainer {
       m_robotDrive = new DriveSubsystem();
       System.out.println("Using Real Swerve Drive Hardware");
     }
-    if (RobotBase.isSimulation()) {
-        // Test: drive forward at 1 m/s for testing
-        m_robotDrive.setDefaultCommand(
-            new RunCommand(
-                () -> m_robotDrive.drive(1.0, 0, 0, false), // Drive forward
-                m_robotDrive
-            )
-        );
-    }
-
-    // Configure the button bindings
+    
+    // Now that m_robotDrive is initialized, configure buttons
     configureButtonBindings();
 
     // Configure default commands with keyboard support
     m_robotDrive.setDefaultCommand(
         new RunCommand(
             () -> {
-                double xSpeed = 0;
-                double ySpeed = 0;
-                double rot = 0;
+                double xSpeed = 1;
+                double ySpeed = 1;
+                double rot = 1;
                 
                 // Check if we're using keyboard or controller
                 // If any keyboard keys are pressed, use keyboard, otherwise use controller
