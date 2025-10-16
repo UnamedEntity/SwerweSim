@@ -29,9 +29,7 @@ import frc.robot.Constants.ModuleConstants;
 /**
  * Simulated swerve drive subsystem that extends DriveSubsystem.
  * Uses Maple-Sim physics simulation for realistic robot behavior in simulation mode.
- * 
- * This implementation uses SelfControlledSwerveDriveSimulation which manages
- * the simulated drivetrain with closed-loop control, similar to real hardware.
+ * Configured to work with AdvantageScope 3D visualization.
  */
 public class SimulatedDriveSubsystem extends DriveSubsystem {
   private final SelfControlledSwerveDriveSimulation simulatedDrive;
@@ -40,7 +38,6 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
   
   // Publishers for 3D visualization in AdvantageScope
   private final StructArrayPublisher<Pose3d> robotPosePublisher;
-  private final StructArrayPublisher<Pose3d> gamePiecePublisher;
 
   /** Creates a new SimulatedDriveSubsystem. */
   public SimulatedDriveSubsystem() {
@@ -87,15 +84,15 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
     SmartDashboard.putData("Simulation Field", field2d);
     
     // Setup 3D visualization publishers for AdvantageScope
+    // Robot pose - standard topic that AdvantageScope expects
     robotPosePublisher = NetworkTableInstance.getDefault()
         .getStructArrayTopic("AdvantageScope/Robot", Pose3d.struct)
         .publish();
-        
-    gamePiecePublisher = NetworkTableInstance.getDefault()
-        .getStructArrayTopic("AdvantageScope/GamePieces", Pose3d.struct)
-        .publish();
     
     System.out.println("=== Maple-Sim Swerve Drive Simulation initialized ===");
+    System.out.println("AdvantageScope topics:");
+    System.out.println("  - Robot: AdvantageScope/Robot");
+    System.out.println("  - Game pieces managed by SimulatedArena automatically");
   }
 
   @Override
@@ -113,21 +110,17 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
     field2d.setRobotPose(actualPose);
     field2d.getObject("odometry").setPose(odometryPose);
     
-    // Publish 3D robot pose for AdvantageScope (less frequently to reduce overhead)
+    // Publish 3D robot pose for AdvantageScope
     robotPosePublisher.set(new Pose3d[] {
-        new Pose3d(getPose().getX(), getPose().getY(), 0.0,
-                   new Rotation3d(0, 0, getPose().getRotation().getRadians()))
+        new Pose3d(
+            actualPose.getX(), 
+            actualPose.getY(), 
+            0.0,
+            new Rotation3d(0, 0, actualPose.getRotation().getRadians())
+        )
     });
     
-    // Publish coral pieces for AdvantageScope 3D visualization
-    Pose3d[] coralPieces = new Pose3d[] {
-        // Add coral piece positions here - you can get these from the intake simulation
-        new Pose3d(2.0, 3.0, 0.1, new Rotation3d()), // Example coral piece at (2,3)
-        new Pose3d(5.0, 1.0, 0.1, new Rotation3d())  // Another coral piece at (5,1)
-    };
-    gamePiecePublisher.set(coralPieces);
-    
-    // Display essential data only
+    // Display essential data
     SmartDashboard.putNumber("Sim X", actualPose.getX());
     SmartDashboard.putNumber("Sim Y", actualPose.getY());
     SmartDashboard.putNumber("Sim Heading", actualPose.getRotation().getDegrees());
@@ -148,7 +141,6 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
       // Send the chassis speeds to the simulation
       simulatedDrive.runChassisSpeeds(speeds, new Translation2d(), fieldRelative, false);
   }
-
 
   @Override
   public void setModuleStates(SwerveModuleState[] desiredStates) {
@@ -179,14 +171,11 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
 
   @Override
   public double getHeading() {
-    // Use the odometry-estimated pose to get the heading
-    // This matches what the real robot would report
     return getPose().getRotation().getDegrees();
   }
 
   @Override
   public double getTurnRate() {
-    // Get the measured speeds and extract the angular velocity
     ChassisSpeeds speeds = simulatedDrive.getMeasuredSpeedsFieldRelative(false);
     return Math.toDegrees(speeds.omegaRadiansPerSecond);
   }
@@ -200,5 +189,4 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
   public org.ironmaple.simulation.drivesims.AbstractDriveTrainSimulation getDriveSimulation() {
     return baseSimulation;
   }
-
 }

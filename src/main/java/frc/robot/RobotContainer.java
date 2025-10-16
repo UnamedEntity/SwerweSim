@@ -33,21 +33,11 @@ import edu.wpi.first.wpilibj2.command.SwerveControllerCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import java.util.List;
 
-/*
- * This class is where the bulk of the robot should be declared.  Since Command-based is a
- * "declarative" paradigm, very little robot logic should actually be handled in the {@link Robot}
- * periodic methods (other than the scheduler calls).  Instead, the structure of the robot
- * (including subsystems, commands, and button mappings) should be declared here.
- */
 public class RobotContainer {
-  // The robot's subsystems - use simulation in simulator, real hardware on robot
   private final DriveSubsystem m_robotDrive;
   private final IntakeSubsystem m_intake;
+  private final XboxController m_driverController = new XboxController(OIConstants.kDriverControllerPort);
 
-  // The driver's controller
-  XboxController m_driverController = new XboxController(OIConstants.kDriverControllerPort);
-
-  /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     // Create appropriate drive subsystem based on whether we're running in simulation
     if (RobotBase.isSimulation()) {
@@ -65,123 +55,80 @@ public class RobotContainer {
     if (RobotBase.isSimulation() && m_robotDrive instanceof SimulatedDriveSubsystem) {
       System.out.println("Setting up intake simulation IO...");
       SimulatedDriveSubsystem simDrive = (SimulatedDriveSubsystem) m_robotDrive;
-      // Get the drive simulation from the simulated drive subsystem
       var driveSim = simDrive.getDriveSimulation();
       System.out.println("Got drive simulation: " + (driveSim != null ? "not null" : "NULL"));
       IntakeIOSim intakeSim = new IntakeIOSim(driveSim);
       System.out.println("Created IntakeIOSim: " + (intakeSim != null ? "not null" : "NULL"));
       m_intake.setSimulationIO(intakeSim);
       System.out.println("Set simulation IO on intake subsystem");
-    } else {
-      System.out.println("NOT setting up simulation IO - isSimulation=" + RobotBase.isSimulation() + 
-                        ", isSimulatedDrive=" + (m_robotDrive instanceof SimulatedDriveSubsystem));
     }
     
-    // Now that m_robotDrive is initialized, configure buttons
+    // Configure button bindings
     configureButtonBindings();
 
-    // Configure default commands with keyboard support
+    // Configure default drive command - SIMPLIFIED, NO INTAKE CONTROL HERE
     m_robotDrive.setDefaultCommand(
         new RunCommand(
             () -> {
-                double xSpeed = 1;
-                double ySpeed = 1;
-                double rot = 1;
+                // Start with zero speeds
+                double xSpeed = 0;
+                double ySpeed = 0;
+                double rot = 0;
 
-                // Forward/Backward (W/S keys)
-                if (m_driverController.getYButton()) { // Y button = W key in sim
-                    xSpeed = DriveConstants.kMaxSpeedMetersPerSecond;
-                }
-                if (m_driverController.getAButton()) { // A button = S key in sim
-                    xSpeed = -DriveConstants.kMaxSpeedMetersPerSecond;
-                }
-
-                // Left/Right strafing (A/D keys)
-                if (m_driverController.getXButton()) { // X button = A key in sim
-                    ySpeed = DriveConstants.kMaxSpeedMetersPerSecond;
-                }
-                if (m_driverController.getBButton()) { // B button = D key in sim
-                    ySpeed = -DriveConstants.kMaxSpeedMetersPerSecond;
-                }
-
-                // Rotation (Q/E keys)
-                if (m_driverController.getLeftBumper()) { // LB = Q key in sim
-                    rot = ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
-                }
-                if (m_driverController.getRightBumper()) { // RB = E key in sim
-                    rot = -ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
-                }
-
-                // Intake controls using A and B buttons
-                if (m_driverController.getAButton()) { // A button for intake
-                    System.out.println("Intake: Starting intake (A button pressed)");
-                    m_intake.startIntake();
-                } else if (m_driverController.getBButton()) { // B button for outtake
-                    System.out.println("Intake: Reversing intake (B button pressed)");
-                    m_intake.reverseIntake();
-                } else {
-                    m_intake.stopIntake();
-                }
-
-                m_robotDrive.drive(xSpeed, ySpeed, rot, false);
+                // Get joystick inputs (dead-banded)
+                double leftY = -m_driverController.getLeftY();
+                double leftX = -m_driverController.getLeftX();
+                double rightX = -m_driverController.getRightX();
                 
-                // If not using keyboard, fall back to controller joysticks
-                
-                m_robotDrive.drive(xSpeed, ySpeed, rot, false);
+                // Apply deadband
+                final double kDeadband = 0.1;
+                if (Math.abs(leftY) > kDeadband) {
+                    xSpeed = leftY * DriveConstants.kMaxSpeedMetersPerSecond;
+                }
+                if (Math.abs(leftX) > kDeadband) {
+                    ySpeed = leftX * DriveConstants.kMaxSpeedMetersPerSecond;
+                }
+                if (Math.abs(rightX) > kDeadband) {
+                    rot = rightX * ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
+                }
+
+                m_robotDrive.drive(xSpeed, ySpeed, rot, true); // Field-relative
             },
             m_robotDrive));
     
-    // Set default command for intake subsystem (idle command)
-    m_intake.setDefaultCommand(new StopIntakeCommand(m_intake));
+    // DO NOT set a default command for intake - let button commands control it
   }
 
-  /**
-   * Use this method to define your button->command mappings. Buttons can be created by
-   * instantiating a {@link edu.wpi.first.wpilibj.GenericHID} or one of its subclasses ({@link
-   * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then calling passing it to a
-   * {@link JoystickButton}.
-   */
   private void configureButtonBindings() {
-    // Reset heading with Back/Select button (or Space in keyboard mode)
+    // Reset heading with Back button
     new JoystickButton(m_driverController, XboxController.Button.kBack.value)
         .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
 
-    // Intake controls
-    // Y button - intake coral pieces
-    new JoystickButton(m_driverController, XboxController.Button.kY.value)
-        .whileTrue(new IntakeCommand(m_intake));
+    // Intake controls - use A and B buttons
+    // A button - intake coral pieces (hold to run)
+    new JoystickButton(m_driverController, XboxController.Button.kA.value)
+        .whileTrue(new IntakeCommand(m_intake))
+        .onFalse(new StopIntakeCommand(m_intake));
     
-    // X button - outtake coral pieces  
-    new JoystickButton(m_driverController, XboxController.Button.kX.value)
-        .whileTrue(new OuttakeCommand(m_intake));
-    
-    // Start button - stop intake
-    new JoystickButton(m_driverController, XboxController.Button.kStart.value)
-        .onTrue(new StopIntakeCommand(m_intake));
+    // B button - outtake coral pieces (hold to run)
+    new JoystickButton(m_driverController, XboxController.Button.kB.value)
+        .whileTrue(new OuttakeCommand(m_intake))
+        .onFalse(new StopIntakeCommand(m_intake));
   }
 
-  /**
-   * Use this to pass the autonomous command to the main {@link Robot} class.
-   *
-   * @return the command to run in autonomous
-   */
   public Command getAutonomousCommand() {
     // Create config for trajectory
     TrajectoryConfig config =
         new TrajectoryConfig(
                 AutoConstants.kMaxSpeedMetersPerSecond,
                 AutoConstants.kMaxAccelerationMetersPerSecondSquared)
-            // Add kinematics to ensure max speed is actually obeyed
             .setKinematics(DriveConstants.kDriveKinematics);
 
-    // An example trajectory to follow. All units in meters.
+    // An example trajectory to follow
     Trajectory exampleTrajectory =
         TrajectoryGenerator.generateTrajectory(
-            // Start at the origin facing the +X direction
             Pose2d.kZero,
-            // Pass through these two interior waypoints, making an 's' curve path
             List.of(new Translation2d(1, 1), new Translation2d(2, -1)),
-            // End 3 meters straight ahead of where we started, facing forward
             new Pose2d(3, 0, Rotation2d.kZero),
             config);
 
@@ -193,18 +140,14 @@ public class RobotContainer {
     SwerveControllerCommand swerveControllerCommand =
         new SwerveControllerCommand(
             exampleTrajectory,
-            m_robotDrive::getPose, // Functional interface to feed supplier
+            m_robotDrive::getPose,
             DriveConstants.kDriveKinematics,
-
-            // Position controllers
             new PIDController(AutoConstants.kPXController, 0, 0),
             new PIDController(AutoConstants.kPYController, 0, 0),
             thetaController,
             m_robotDrive::setModuleStates,
             m_robotDrive);
 
-    // Reset odometry to the initial pose of the trajectory, run path following
-    // command, then stop at the end.
     return Commands.sequence(
         new InstantCommand(() -> m_robotDrive.resetOdometry(exampleTrajectory.getInitialPose())),
         swerveControllerCommand,
