@@ -87,46 +87,29 @@ public class RobotContainer {
                 double xSpeed = 1;
                 double ySpeed = 1;
                 double rot = 1;
-                
-                                // Check if we're using keyboard or controller
-                // If any keyboard keys are pressed, use keyboard, otherwise use controller
-                boolean usingKeyboard = false;
 
                 // Forward/Backward (W/S keys)
                 if (m_driverController.getYButton()) { // Y button = W key in sim
                     xSpeed = DriveConstants.kMaxSpeedMetersPerSecond;
-                    usingKeyboard = true;
                 }
                 if (m_driverController.getAButton()) { // A button = S key in sim
                     xSpeed = -DriveConstants.kMaxSpeedMetersPerSecond;
-                    usingKeyboard = true;
                 }
 
                 // Left/Right strafing (A/D keys)
                 if (m_driverController.getXButton()) { // X button = A key in sim
                     ySpeed = DriveConstants.kMaxSpeedMetersPerSecond;
-                    usingKeyboard = true;
                 }
                 if (m_driverController.getBButton()) { // B button = D key in sim
                     ySpeed = -DriveConstants.kMaxSpeedMetersPerSecond;
-                    usingKeyboard = true;
                 }
 
                 // Rotation (Q/E keys)
                 if (m_driverController.getLeftBumper()) { // LB = Q key in sim
                     rot = ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
-                    usingKeyboard = true;
                 }
                 if (m_driverController.getRightBumper()) { // RB = E key in sim
                     rot = -ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
-                    usingKeyboard = true;
-                }
-
-                // If not using keyboard, use controller joysticks
-                if (!usingKeyboard) {
-                    xSpeed = -m_driverController.getLeftY() * DriveConstants.kMaxSpeedMetersPerSecond;
-                    ySpeed = -m_driverController.getLeftX() * DriveConstants.kMaxSpeedMetersPerSecond;
-                    rot = -m_driverController.getRightX() * ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
                 }
 
                 // Intake controls using A and B buttons
@@ -142,6 +125,7 @@ public class RobotContainer {
 
                 m_robotDrive.drive(xSpeed, ySpeed, rot, false);
                 
+                // If not using keyboard, fall back to controller joysticks
                 
                 m_robotDrive.drive(xSpeed, ySpeed, rot, false);
             },
