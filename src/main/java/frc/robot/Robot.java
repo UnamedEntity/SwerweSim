@@ -11,7 +11,6 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj.Joystick;
 /**
  * The methods in this class are called automatically corresponding to each mode, as described in
  * the TimedRobot documentation. If you change the name of this class or the package after creating
@@ -22,8 +21,6 @@ public class Robot extends TimedRobot {
 
   private RobotContainer m_robotContainer;
   
-    // Declare joystick as a class-level variable
-    private Joystick joystick;
   
     /**
      * This function is run when the robot is first started up and should be used for any
@@ -109,8 +106,6 @@ public class Robot extends TimedRobot {
     /** This function is called periodically during operator control. */
     @Override
     public void robotInit() {
-      // Initialize the joystick on port 0
-      joystick = new Joystick(0);
   
       // Initialize the RobotContainer
       m_robotContainer = new RobotContainer();
@@ -118,12 +113,6 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
-      double xSpeed = -joystick.getY(); // Forward/backward speed
-      double ySpeed = joystick.getX();  // Sideways speed
-      double rot = joystick.getZ();     // Rotational speed
-
-      // Call the drive method
-   
   }
   @Override
   public void testInit() {

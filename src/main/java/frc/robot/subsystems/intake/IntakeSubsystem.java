@@ -16,14 +16,10 @@ public class IntakeSubsystem extends SubsystemBase {
 
   public IntakeSubsystem() {
     // Create appropriate intake implementation based on simulation vs real robot
-    if (RobotBase.isSimulation()) {
       // For simulation, we'll create a placeholder that will be replaced
       m_intakeIO = null; // Will be set in setSimulationIO method
       System.out.println("Intake: Using Maple-Sim Intake Simulation");
-    } else {
-      m_intakeIO = new IntakeIORobot();
-      System.out.println("Intake: Using Real Hardware");
-    }
+    
   }
 
   /** Set the simulation IO implementation (called from RobotContainer) */

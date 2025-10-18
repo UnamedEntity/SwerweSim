@@ -62,10 +62,6 @@ public class IntakeIOSim implements IntakeIO {
     return m_intakeSimulation.getGamePiecesAmount() > 0;
   }
 
-  /**
-   * Eject the coral piece from the intake
-   * @return true if a coral piece was ejected, false if intake was empty
-   */
   public boolean ejectCoral() {
     return m_intakeSimulation.obtainGamePieceFromIntake();
   }
