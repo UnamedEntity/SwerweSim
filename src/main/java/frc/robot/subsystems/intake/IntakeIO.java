@@ -4,9 +4,8 @@
 
 package frc.robot.subsystems.intake;
 
-/** Intake subsystem hardware interface */
+
 public interface IntakeIO {
-  /** Intake subsystem inputs */
   public static class IntakeIOInputs {
     public boolean noteDetected = false;
     public double intakeVoltage = 0.0;

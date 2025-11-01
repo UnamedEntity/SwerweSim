@@ -8,17 +8,17 @@ import org.ironmaple.simulation.drivesims.AbstractDriveTrainSimulation;
 import org.ironmaple.simulation.IntakeSimulation;
 import org.ironmaple.simulation.IntakeSimulation.IntakeSide;
 import edu.wpi.first.units.Units;
-import frc.robot.Constants.IntakeConstants;
 
 /** Intake simulation implementation for Maple-Sim */
 public class IntakeIOSim implements IntakeIO {
-  private final IntakeSimulation m_intakeSimulation;
+  private final IntakeSimulation intakeSimulation;
   private double m_intakeVoltage = 0.0;
+  // subsystems/intake/IntakeIOSim.java
 
   public IntakeIOSim(AbstractDriveTrainSimulation driveTrain) {
     // Create a coral intake simulation - mounted on the back side of the robot
     // This is an "Over-The-Bumper" intake that extends beyond the robot frame
-    m_intakeSimulation = IntakeSimulation.OverTheBumperIntake(
+    intakeSimulation = IntakeSimulation.OverTheBumperIntake(
         // Specify the type of game pieces that the intake can collect
         "Coral", // Using "Coral" as the game piece type for Reefscape 2025
         // Specify the drivetrain to which this intake is attached
@@ -36,7 +36,7 @@ public class IntakeIOSim implements IntakeIO {
 
   @Override
   public void updateInputs(IntakeIO.IntakeIOInputs inputs) {
-    inputs.noteDetected = m_intakeSimulation.getGamePiecesAmount() > 0;
+    inputs.noteDetected = intakeSimulation.getGamePiecesAmount() > 0;
     inputs.intakeVoltage = m_intakeVoltage;
   }
 
@@ -46,23 +46,26 @@ public class IntakeIOSim implements IntakeIO {
     // Convert voltage to intake state
     boolean running = Math.abs(volts) > 0.1;
     if (running) {
-      m_intakeSimulation.startIntake(); // Extends the intake and starts detecting contacts
+      intakeSimulation.startIntake(); // Extends the intake and starts detecting contacts
     } else {
-      m_intakeSimulation.stopIntake(); // Retracts the intake
+      intakeSimulation.stopIntake(); // Retracts the intake
     }
   }
 
-  @Override
-  public void setRunning(boolean running) {
-    setIntakeVoltage(running ? IntakeConstants.kIntakeVoltage : 0.0);
+  @Override // Defined by IntakeIO
+  public void setRunning(boolean runIntake) {
+    if (runIntake)
+            intakeSimulation.startIntake(); // Extends the intake out from the chassis frame and starts detecting contacts with game pieces
+        else
+            intakeSimulation.stopIntake(); // Retracts the intake into the chassis frame, disabling game piece collection   
   }
 
   @Override
   public boolean isNoteInsideIntake() {
-    return m_intakeSimulation.getGamePiecesAmount() > 0;
+    return intakeSimulation.getGamePiecesAmount() != 0;
   }
 
   public boolean ejectCoral() {
-    return m_intakeSimulation.obtainGamePieceFromIntake();
+    return intakeSimulation.obtainGamePieceFromIntake();
   }
 }
