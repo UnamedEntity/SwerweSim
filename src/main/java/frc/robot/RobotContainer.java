@@ -22,9 +22,6 @@ import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.SimulatedDriveSubsystem;
 import frc.robot.subsystems.intake.IntakeSubsystem;
 import frc.robot.subsystems.intake.IntakeIOSim;
-import frc.robot.commands.intake.IntakeCommand;
-import frc.robot.commands.intake.OuttakeCommand;
-import frc.robot.commands.intake.StopIntakeCommand;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -75,7 +72,7 @@ public class RobotContainer {
                 double ySpeed = 0;
                 double rot = 0;
 
-                // Get joystick inputs (dead-banded)
+            
                 double leftY = -m_driverController.getLeftY();
                 double leftX = -m_driverController.getLeftX();
                 double rightX = -m_driverController.getRightX();
@@ -95,8 +92,6 @@ public class RobotContainer {
                 m_robotDrive.drive(xSpeed, ySpeed, rot, true); // Field-relative
             },
             m_robotDrive));
-    
-    // DO NOT set a default command for intake - let button commands control it
   }
 
   private void configureButtonBindings() {
@@ -104,16 +99,10 @@ public class RobotContainer {
     new JoystickButton(m_driverController, XboxController.Button.kBack.value)
         .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
 
-    // Intake controls - use A and B buttons
-    // A button - intake coral pieces (hold to run)
-    new JoystickButton(m_driverController, XboxController.Button.kA.value)
-        .whileTrue(new IntakeCommand(m_intake))
-        .onFalse(new StopIntakeCommand(m_intake));
-    
-    // B button - outtake coral pieces (hold to run)
-    new JoystickButton(m_driverController, XboxController.Button.kB.value)
-        .whileTrue(new OuttakeCommand(m_intake))
-        .onFalse(new StopIntakeCommand(m_intake));
+       // A button - intake coral pieces (hold to run)
+       new JoystickButton(m_driverController, XboxController.Button.kA.value)
+       .whileTrue(new RunCommand(() -> m_intake.setIntakeVoltage(1), m_intake))
+       .onFalse(new InstantCommand(() -> m_intake.setIntakeVoltage(0), m_intake));
   }
 
   public Command getAutonomousCommand() {

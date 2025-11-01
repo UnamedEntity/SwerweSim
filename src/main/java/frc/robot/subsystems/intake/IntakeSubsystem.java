@@ -7,7 +7,6 @@ package frc.robot.subsystems.intake;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants.IntakeConstants;
 
 /** Intake subsystem for collecting coral pieces */
 public class IntakeSubsystem extends SubsystemBase {
@@ -15,17 +14,13 @@ public class IntakeSubsystem extends SubsystemBase {
   private final IntakeIO.IntakeIOInputs m_inputs = new IntakeIO.IntakeIOInputs();
 
   public IntakeSubsystem() {
-    // Create appropriate intake implementation based on simulation vs real robot
-      // For simulation, we'll create a placeholder that will be replaced
       m_intakeIO = null; // Will be set in setSimulationIO method
       System.out.println("Intake: Using Maple-Sim Intake Simulation");
     
   }
 
-  /** Set the simulation IO implementation (called from RobotContainer) */
   public void setSimulationIO(IntakeIO simIO) {
     if (RobotBase.isSimulation()) {
-      // Use reflection to set the private field - not ideal but works for this case
       try {
         var field = getClass().getDeclaredField("m_intakeIO");
         field.setAccessible(true);
@@ -66,11 +61,6 @@ public class IntakeSubsystem extends SubsystemBase {
     }
   }
 
-  /** Reverse the intake motor to eject coral pieces */
-  public void reverseIntake() {
-      m_intakeIO.setIntakeVoltage(-IntakeConstants.kIntakeVoltage);
-  }
-
   /** Set intake voltage directly */
   public void setIntakeVoltage(double voltage) {
       m_intakeIO.setIntakeVoltage(voltage);
@@ -85,14 +75,6 @@ public class IntakeSubsystem extends SubsystemBase {
   public boolean isNoteInsideIntake() {
     if (m_intakeIO != null) {
       return m_intakeIO.isNoteInsideIntake();
-    }
-    return false;
-  }
-
-  /** Eject coral piece (simulation only) */
-  public boolean ejectCoral() {
-    if (RobotBase.isSimulation() && m_intakeIO instanceof IntakeIOSim) {
-      return ((IntakeIOSim) m_intakeIO).ejectCoral();
     }
     return false;
   }

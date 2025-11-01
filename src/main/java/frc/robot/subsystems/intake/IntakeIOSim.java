@@ -29,7 +29,7 @@ public class IntakeIOSim implements IntakeIO {
         Units.Meters.of(0.15), // 15cm extension beyond bumper
         // The intake is mounted on the back side of the chassis
         IntakeSide.BACK,
-        // The intake can hold up to 1 coral piece
+       
         1
     );
   }
@@ -46,26 +46,21 @@ public class IntakeIOSim implements IntakeIO {
     // Convert voltage to intake state
     boolean running = Math.abs(volts) > 0.1;
     if (running) {
-      intakeSimulation.startIntake(); // Extends the intake and starts detecting contacts
+      intakeSimulation.startIntake(); 
     } else {
-      intakeSimulation.stopIntake(); // Retracts the intake
+      intakeSimulation.stopIntake(); 
     }
   }
 
   @Override // Defined by IntakeIO
   public void setRunning(boolean runIntake) {
     if (runIntake)
-            intakeSimulation.startIntake(); // Extends the intake out from the chassis frame and starts detecting contacts with game pieces
-        else
-            intakeSimulation.stopIntake(); // Retracts the intake into the chassis frame, disabling game piece collection   
+            intakeSimulation.startIntake(); 
+            intakeSimulation.stopIntake();   
   }
 
   @Override
   public boolean isNoteInsideIntake() {
     return intakeSimulation.getGamePiecesAmount() != 0;
-  }
-
-  public boolean ejectCoral() {
-    return intakeSimulation.obtainGamePieceFromIntake();
   }
 }

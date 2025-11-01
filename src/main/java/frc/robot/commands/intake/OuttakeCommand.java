@@ -18,7 +18,7 @@ public class OuttakeCommand extends Command {
 
   @Override
   public void initialize() {
-    m_intake.reverseIntake();
+    
   }
 
   @Override
