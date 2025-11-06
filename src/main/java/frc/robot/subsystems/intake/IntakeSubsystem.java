@@ -43,24 +43,6 @@ public class IntakeSubsystem extends SubsystemBase {
     }
   }
 
-  /** Start the intake motor to collect coral pieces */
-  public void startIntake() {
-    System.out.println("IntakeSubsystem.startIntake() called, m_intakeIO is " + (m_intakeIO != null ? "not null" : "NULL"));
-    if (m_intakeIO != null) {
-      m_intakeIO.setRunning(true);
-      System.out.println("Intake: Set running to true");
-    } else {
-      System.out.println("Intake: ERROR - m_intakeIO is null!");
-    }
-  }
-
-  /** Stop the intake motor */
-  public void stopIntake() {
-    if (m_intakeIO != null) {
-      m_intakeIO.setRunning(false);
-    }
-  }
-
   /** Set intake voltage directly */
   public void setIntakeVoltage(double voltage) {
       m_intakeIO.setIntakeVoltage(voltage);

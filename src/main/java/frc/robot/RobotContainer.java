@@ -86,7 +86,7 @@ public class RobotContainer {
                     ySpeed = leftX * DriveConstants.kMaxSpeedMetersPerSecond;
                 }
                 if (Math.abs(rightX) > kDeadband) {
-                    rot = rightX * ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
+                    rot = rightX/2; //* ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
                 }
 
                 m_robotDrive.drive(xSpeed, ySpeed, rot, true); // Field-relative
@@ -101,7 +101,7 @@ public class RobotContainer {
 
        // A button - intake coral pieces (hold to run)
        new JoystickButton(m_driverController, XboxController.Button.kA.value)
-       .whileTrue(new RunCommand(() -> m_intake.setIntakeVoltage(1), m_intake))
+       .whileTrue(new RunCommand(() -> m_intake.setIntakeVoltage(3), m_intake))
        .onFalse(new InstantCommand(() -> m_intake.setIntakeVoltage(0), m_intake));
   }
 

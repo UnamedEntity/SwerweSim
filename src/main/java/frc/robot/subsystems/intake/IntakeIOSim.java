@@ -51,14 +51,6 @@ public class IntakeIOSim implements IntakeIO {
       intakeSimulation.stopIntake(); 
     }
   }
-
-  @Override // Defined by IntakeIO
-  public void setRunning(boolean runIntake) {
-    if (runIntake)
-            intakeSimulation.startIntake(); 
-            intakeSimulation.stopIntake();   
-  }
-
   @Override
   public boolean isNoteInsideIntake() {
     return intakeSimulation.getGamePiecesAmount() != 0;
