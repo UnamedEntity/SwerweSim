@@ -83,12 +83,6 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
     field2d = new Field2d();
     SmartDashboard.putData("Simulation Field", field2d);
     
-    SimulatedArena.getInstance().addGamePiece(new ReefscapeCoral(
-    // We must specify a heading since the coral is a tube
-    new Pose2d(2, 2, Rotation2d.fromDegrees(90))));
-
-    SimulatedArena.getInstance().addGamePiece(new ReefscapeAlgaeOnField(new Translation2d(2,2)));
-    
     // Setup 3D visualization publishers for AdvantageScope
     // Robot pose - standard topic that AdvantageScope expects
     robotPosePublisher = NetworkTableInstance.getDefault()
