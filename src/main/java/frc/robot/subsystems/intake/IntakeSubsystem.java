@@ -43,9 +43,32 @@ public class IntakeSubsystem extends SubsystemBase {
     }
   }
 
+  /** Start the intake motor to collect coral pieces */
+  public void startIntake() {
+    if (m_intakeIO != null) {
+      m_intakeIO.setRunning(true);
+    }
+  }
+
+  /** Stop the intake motor */
+  public void stopIntake() {
+    if (m_intakeIO != null) {
+      m_intakeIO.setRunning(false);
+    }
+  }
+
+  /** Reverse the intake motor to eject coral pieces */
+  public void reverseIntake() {
+    if (m_intakeIO != null) {
+      m_intakeIO.setIntakeVoltage(-6.0); // Negative voltage for reverse
+    }
+  }
+
   /** Set intake voltage directly */
   public void setIntakeVoltage(double voltage) {
+    if (m_intakeIO != null) {
       m_intakeIO.setIntakeVoltage(voltage);
+    }
   }
 
   /** Returns true if a coral piece is detected in the intake */

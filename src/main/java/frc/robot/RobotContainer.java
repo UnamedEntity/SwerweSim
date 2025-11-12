@@ -16,7 +16,6 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.XboxController;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
-import frc.robot.Constants.ModuleConstants;
 import frc.robot.Constants.OIConstants;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.SimulatedDriveSubsystem;
@@ -99,10 +98,15 @@ public class RobotContainer {
     new JoystickButton(m_driverController, XboxController.Button.kBack.value)
         .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
 
-       // A button - intake coral pieces (hold to run)
-       new JoystickButton(m_driverController, XboxController.Button.kA.value)
-       .whileTrue(new RunCommand(() -> m_intake.setIntakeVoltage(3), m_intake))
-       .onFalse(new InstantCommand(() -> m_intake.setIntakeVoltage(0), m_intake));
+    // Z key (Button 1) - intake coral pieces (hold to run)
+    new JoystickButton(m_driverController, 1)
+        .whileTrue(new RunCommand(() -> m_intake.startIntake(), m_intake))
+        .onFalse(new InstantCommand(() -> m_intake.stopIntake(), m_intake));
+
+    // V key (Button 4) - outtake coral pieces (hold to run)
+    new JoystickButton(m_driverController, 4)
+        .whileTrue(new RunCommand(() -> m_intake.reverseIntake(), m_intake))
+        .onFalse(new InstantCommand(() -> m_intake.stopIntake(), m_intake));
   }
 
   public Command getAutonomousCommand() {

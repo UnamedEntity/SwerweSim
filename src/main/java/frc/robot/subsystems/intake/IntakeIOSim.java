@@ -51,6 +51,18 @@ public class IntakeIOSim implements IntakeIO {
       intakeSimulation.stopIntake(); 
     }
   }
+
+  @Override
+  public void setRunning(boolean runIntake) {
+    if (runIntake) {
+      m_intakeVoltage = 6.0; // Set positive voltage for intake
+      intakeSimulation.startIntake(); // Extends the intake and starts detecting contacts
+    } else {
+      m_intakeVoltage = 0.0; // Set voltage to zero
+      intakeSimulation.stopIntake(); // Retracts the intake
+    }
+  }
+
   @Override
   public boolean isNoteInsideIntake() {
     return intakeSimulation.getGamePiecesAmount() != 0;

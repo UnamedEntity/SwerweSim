@@ -9,8 +9,6 @@ import org.ironmaple.simulation.drivesims.SelfControlledSwerveDriveSimulation;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
 import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
 import org.ironmaple.simulation.drivesims.configs.SwerveModuleSimulationConfig;
-import org.ironmaple.simulation.seasonspecific.crescendo2024.CrescendoNoteOnField;
-import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeAlgaeOnField;
 import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeCoralOnField;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -33,6 +31,7 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
   private final SelfControlledSwerveDriveSimulation simulatedDrive;
   private final SwerveDriveSimulation baseSimulation;
   private final Field2d field2d;
+  private boolean coralSpawned = false;
   
   // Publishers for 3D visualization in AdvantageScope
   private final StructArrayPublisher<Pose3d> robotPosePublisher;
@@ -116,13 +115,16 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
             0.0,
             new Rotation3d(0, 0, actualPose.getRotation().getRadians())
         )
-        
     });
-    SimulatedArena.getInstance().addGamePiece(new ReefscapeCoralOnField(new Pose2d(2, 2, Rotation2d.fromDegrees(90))));
-
-    SimulatedArena.getInstance().addGamePiece(new ReefscapeAlgaeOnField(new Translation2d(2,2)));
-
     
+    // Spawn coral piece only once at the start
+    if (!coralSpawned) {
+      SimulatedArena.getInstance().addGamePiece(
+          new ReefscapeCoralOnField(new Pose2d(2.0, 2.0, Rotation2d.fromDegrees(90)))
+      );
+      coralSpawned = true;
+      System.out.println("Coral piece spawned at (2.0, 2.0)");
+    }
     
     // Display essential data
     SmartDashboard.putNumber("Sim X", actualPose.getX());
