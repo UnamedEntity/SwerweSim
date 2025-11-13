@@ -16,6 +16,7 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.XboxController;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
+import frc.robot.Constants.ModuleConstants;
 import frc.robot.Constants.OIConstants;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.SimulatedDriveSubsystem;
@@ -62,7 +63,7 @@ public class RobotContainer {
     // Configure button bindings
     configureButtonBindings();
 
-    // Configure default drive command - SIMPLIFIED, NO INTAKE CONTROL HERE
+    // Configure default drive command with keyboard support
     m_robotDrive.setDefaultCommand(
         new RunCommand(
             () -> {
@@ -70,25 +71,31 @@ public class RobotContainer {
                 double xSpeed = 0;
                 double ySpeed = 0;
                 double rot = 0;
-
-            
+                
+                // Get joystick values
                 double leftY = -m_driverController.getLeftY();
                 double leftX = -m_driverController.getLeftX();
                 double rightX = -m_driverController.getRightX();
                 
-                // Apply deadband
+                // Apply deadband - use larger deadband for rotation to prevent drift
                 final double kDeadband = 0.1;
+                final double kRotationDeadband = 0.2; // Increased deadband for rotation to prevent spinning
+                
                 if (Math.abs(leftY) > kDeadband) {
                     xSpeed = leftY * DriveConstants.kMaxSpeedMetersPerSecond;
                 }
                 if (Math.abs(leftX) > kDeadband) {
                     ySpeed = leftX * DriveConstants.kMaxSpeedMetersPerSecond;
                 }
-                if (Math.abs(rightX) > kDeadband) {
-                    rot = rightX/2; //* ModuleConstants.kMaxModuleAngularSpeedRadiansPerSecond;
+                // Only apply rotation if it's above the deadband to prevent drift
+                // Also ensure rotation is exactly zero when below deadband
+                if (Math.abs(rightX) > kRotationDeadband) {
+                    rot = rightX * AutoConstants.kMaxAngularSpeedRadiansPerSecond;
+                } else {
+                    rot = 0.0; // Explicitly set to zero to prevent any drift
                 }
 
-                m_robotDrive.drive(xSpeed, ySpeed, rot, true); // Field-relative
+                m_robotDrive.drive(xSpeed, ySpeed, rot, false); // Robot-relative for intuitive teleop
             },
             m_robotDrive));
   }

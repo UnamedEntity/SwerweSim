@@ -9,7 +9,6 @@ import org.ironmaple.simulation.drivesims.SelfControlledSwerveDriveSimulation;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
 import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
 import org.ironmaple.simulation.drivesims.configs.SwerveModuleSimulationConfig;
-import org.ironmaple.simulation.seasonspecific.crescendo2024.CrescendoNoteOnField;
 import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeAlgaeOnField;
 import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeCoralOnField;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -36,6 +35,7 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
   
   // Publishers for 3D visualization in AdvantageScope
   private final StructArrayPublisher<Pose3d> robotPosePublisher;
+  private final StructArrayPublisher<Pose3d> gamePiecePublisher;
 
   /** Creates a new SimulatedDriveSubsystem. */
   public SimulatedDriveSubsystem() {
@@ -87,7 +87,21 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
         .getStructArrayTopic("AdvantageScope/Robot", Pose3d.struct)
         .publish();
     
-
+    // Game pieces publisher for AdvantageScope
+    gamePiecePublisher = NetworkTableInstance.getDefault()
+        .getStructArrayTopic("AdvantageScope/GamePieces", Pose3d.struct)
+        .publish();
+    
+    // Spawn game pieces once at initialization - behind the robot
+    // Robot starts at (8.0, 4.0) facing forward (0 degrees), intake is on BACK side
+    // Place coral 1.5 meters behind the robot
+    SimulatedArena.getInstance().addGamePiece(
+        new ReefscapeCoralOnField(new Pose2d(6.5, 4.0, Rotation2d.fromDegrees(90)))
+    );
+    SimulatedArena.getInstance().addGamePiece(
+        new ReefscapeAlgaeOnField(new Translation2d(6.5, 4.0))
+    );
+    System.out.println("Game pieces spawned behind robot at (6.5, 4.0)");
   }
 
   @Override
@@ -113,13 +127,13 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
             0.0,
             new Rotation3d(0, 0, actualPose.getRotation().getRadians())
         )
-        
     });
-    SimulatedArena.getInstance().addGamePiece(new ReefscapeCoralOnField(new Pose2d(2, 2, Rotation2d.fromDegrees(90))));
-
-    SimulatedArena.getInstance().addGamePiece(new ReefscapeAlgaeOnField(new Translation2d(2,2)));
-
     
+    // Publish game pieces for AdvantageScope (coral and algae at 6.5, 4.0)
+    gamePiecePublisher.set(new Pose3d[] {
+        new Pose3d(6.5, 4.0, 0.1, new Rotation3d(0, 0, Math.toRadians(90))), // Coral
+        new Pose3d(6.5, 4.0, 0.1, new Rotation3d()) // Algae
+    });
     
     // Display essential data
     SmartDashboard.putNumber("Sim X", actualPose.getX());
