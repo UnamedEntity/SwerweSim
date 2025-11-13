@@ -7,6 +7,9 @@ package frc.robot.subsystems.intake;
 import org.ironmaple.simulation.drivesims.AbstractDriveTrainSimulation;
 import org.ironmaple.simulation.IntakeSimulation;
 import org.ironmaple.simulation.IntakeSimulation.IntakeSide;
+import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeCoralOnField;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.Units;
 
 /** Intake simulation implementation for Maple-Sim */
@@ -87,5 +90,43 @@ public class IntakeIOSim implements IntakeIO {
   @Override
   public boolean isNoteInsideIntake() {
     return intakeSimulation.getGamePiecesAmount() != 0;
+  }
+  
+  /**
+   * Get the IntakeSimulation instance for direct access.
+   * This allows other subsystems to check if coral has been collected.
+   * 
+   * @return The IntakeSimulation instance
+   */
+  public IntakeSimulation getIntakeSimulation() {
+    return intakeSimulation;
+  }
+  
+  /**
+   * Add coral to the intake simulation.
+   * This method adds a coral game piece to the field and integrates it with the intake simulation.
+   * 
+   * @param pose The pose where the coral should be placed on the field
+   * @return The created ReefscapeCoralOnField instance
+   */
+  public ReefscapeCoralOnField addCoral(Pose2d pose) {
+    // Create coral and add it to the simulation arena
+    // The IntakeSimulation will automatically detect collisions with coral of type "Coral"
+    ReefscapeCoralOnField coral = new ReefscapeCoralOnField(pose);
+    org.ironmaple.simulation.SimulatedArena.getInstance().addGamePiece(coral);
+    System.out.println("Coral added to intake simulation at pose: " + pose);
+    return coral;
+  }
+  
+  /**
+   * Add coral to the intake simulation at a specific position.
+   * 
+   * @param x X coordinate in meters
+   * @param y Y coordinate in meters
+   * @param rotationDegrees Rotation in degrees
+   * @return The created ReefscapeCoralOnField instance
+   */
+  public ReefscapeCoralOnField addCoral(double x, double y, double rotationDegrees) {
+    return addCoral(new Pose2d(x, y, Rotation2d.fromDegrees(rotationDegrees)));
   }
 }

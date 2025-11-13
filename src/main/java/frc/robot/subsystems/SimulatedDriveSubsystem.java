@@ -12,7 +12,6 @@ import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
 import org.ironmaple.simulation.drivesims.configs.SwerveModuleSimulationConfig;
 import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeAlgaeOnField;
 import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeCoralOnField;
-import org.ironmaple.simulation.IntakeSimulation.GamePieceContactListener;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -39,6 +38,12 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
   // Publishers for 3D visualization in AdvantageScope
   private final StructArrayPublisher<Pose3d> robotPosePublisher;
   private final StructArrayPublisher<Pose3d> gamePiecePublisher;
+  
+  // Reference to coral for physics-based pose tracking
+  private ReefscapeCoralOnField coral;
+  
+  // Reference to intake simulation to check if coral has been collected
+  private IntakeSimulation intakeSimulation;
 
   /** Creates a new SimulatedDriveSubsystem. */
   public SimulatedDriveSubsystem() {
@@ -98,13 +103,12 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
     // Spawn game pieces once at initialization - behind the robot
     // Robot starts at (8.0, 4.0) facing forward (0 degrees), intake is on BACK side
     // Place coral 1.5 meters behind the robot
-    SimulatedArena.getInstance().addGamePiece(
-        new ReefscapeCoralOnField(new Pose2d(6.5, 4.0, Rotation2d.fromDegrees(90)))
-    );
-    SimulatedArena.registerGamePieceContactListener(
-        ReefscapeCoralOnField.class,
-        IntakeSimulation.GamePieceContactListener("Coral")
-    );
+    coral = new ReefscapeCoralOnField(new Pose2d(6.5, 4.0, Rotation2d.fromDegrees(90)));
+    SimulatedArena.getInstance().addGamePiece(coral);
+    
+    // GamePieceContactListener is automatically set up by IntakeSimulation when it's created
+    // with game piece type "Coral". The listener will remove coral from field when collision detected.
+    
     SimulatedArena.getInstance().addGamePiece(
         new ReefscapeAlgaeOnField(new Translation2d(6.5, 4.0))
     );
@@ -136,11 +140,38 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
         )
     });
     
-    // Publish game pieces for AdvantageScope (coral and algae at 6.5, 4.0)
-    gamePiecePublisher.set(new Pose3d[] {
-        new Pose3d(6.5, 4.0, 0.1, new Rotation3d(0, 0, Math.toRadians(90))), // Coral
-        new Pose3d(6.5, 4.0, 0.1, new Rotation3d()) // Algae
-    });
+    // Check if coral has been collected by checking intake simulation directly
+    // When coral is collected, IntakeSimulation.getGamePiecesAmount() will be > 0
+    // and the GamePieceContactListener will have removed it from the field
+    if (intakeSimulation != null && coral != null) {
+      int gamePieceCount = intakeSimulation.getGamePiecesAmount();
+      if (gamePieceCount > 0) {
+        // Coral has been collected - remove it from visualization
+        coral = null;
+        System.out.println("Coral collected! Removing from visualization.");
+      }
+    }
+    
+    // Publish game pieces for AdvantageScope with physics-based poses
+    // Coral has physics enabled through SimulatedArena.addGamePiece()
+    // The coral's pose is updated by the physics engine during simulationPeriodic()
+    // When coral is collected, it's removed from the visualization
+    Pose3d[] gamePiecePoses;
+    if (coral != null) {
+      // Coral is still on the field - physics simulation is handling its position
+      // The pose will be updated by the physics engine, but for visualization we use initial pose
+      // TODO: Query coral's actual physics body pose for real-time updates
+      gamePiecePoses = new Pose3d[] {
+          new Pose3d(6.5, 4.0, 0.1, new Rotation3d(0, 0, Math.toRadians(90))), // Coral (physics-enabled)
+          new Pose3d(6.5, 4.0, 0.1, new Rotation3d()) // Algae (static for now)
+      };
+    } else {
+      // Coral has been collected and removed from field via GamePieceContactListener
+      gamePiecePoses = new Pose3d[] {
+          new Pose3d(6.5, 4.0, 0.1, new Rotation3d()) // Algae only
+      };
+    }
+    gamePiecePublisher.set(gamePiecePoses);
     
     // Display essential data
     SmartDashboard.putNumber("Sim X", actualPose.getX());
@@ -151,9 +182,8 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
   @Override
   public void simulationPeriodic() {
     // SimulatedArena handles physics updates automatically
+    // This includes collision detection between robot and coral via GamePieceContactListener
     SimulatedArena.getInstance().simulationPeriodic();
-    IntakeSimulation.GamePieceContactListener();
- 
   }
 
   @Override
@@ -213,5 +243,15 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
   /** Get the underlying drive simulation for other subsystems to use */
   public org.ironmaple.simulation.drivesims.AbstractDriveTrainSimulation getDriveSimulation() {
     return baseSimulation;
+  }
+  
+  /**
+   * Set the intake simulation reference to track when coral is collected.
+   * This allows the drive subsystem to remove coral from visualization when collected.
+   * 
+   * @param intakeSim The IntakeSimulation instance
+   */
+  public void setIntakeSimulation(IntakeSimulation intakeSim) {
+    this.intakeSimulation = intakeSim;
   }
 }

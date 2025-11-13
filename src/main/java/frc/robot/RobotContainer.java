@@ -58,6 +58,10 @@ public class RobotContainer {
       System.out.println("Created IntakeIOSim: " + (intakeSim != null ? "not null" : "NULL"));
       m_intake.setSimulationIO(intakeSim);
       System.out.println("Set simulation IO on intake subsystem");
+      
+      // Set intake simulation reference in drive subsystem so it can track coral collection
+      simDrive.setIntakeSimulation(intakeSim.getIntakeSimulation());
+      System.out.println("Set intake simulation reference in drive subsystem");
     }
     
     // Configure button bindings
