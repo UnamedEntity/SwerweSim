@@ -112,7 +112,7 @@ public class RobotContainer {
 
     // V key (Button 4) - outtake coral pieces (hold to run)
     new JoystickButton(m_driverController, 4)
-        .whileTrue(new RunCommand(() -> m_intake.reverseIntake(), m_intake))
+        //.whileTrue(new RunCommand(() -> m_intake.startOuttake(), m_intake))
         .onFalse(new InstantCommand(() -> m_intake.stopIntake(), m_intake));
   }
 

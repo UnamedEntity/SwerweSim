@@ -4,6 +4,7 @@
 
 package frc.robot.subsystems;
 
+import org.ironmaple.simulation.IntakeSimulation;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.SelfControlledSwerveDriveSimulation;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
@@ -11,6 +12,7 @@ import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
 import org.ironmaple.simulation.drivesims.configs.SwerveModuleSimulationConfig;
 import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeAlgaeOnField;
 import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeCoralOnField;
+import org.ironmaple.simulation.IntakeSimulation.GamePieceContactListener;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -26,6 +28,7 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.ModuleConstants;
+
 
 
 public class SimulatedDriveSubsystem extends DriveSubsystem {
@@ -98,6 +101,10 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
     SimulatedArena.getInstance().addGamePiece(
         new ReefscapeCoralOnField(new Pose2d(6.5, 4.0, Rotation2d.fromDegrees(90)))
     );
+    SimulatedArena.registerGamePieceContactListener(
+        ReefscapeCoralOnField.class,
+        IntakeSimulation.GamePieceContactListener("Coral")
+    );
     SimulatedArena.getInstance().addGamePiece(
         new ReefscapeAlgaeOnField(new Translation2d(6.5, 4.0))
     );
@@ -144,6 +151,9 @@ public class SimulatedDriveSubsystem extends DriveSubsystem {
   @Override
   public void simulationPeriodic() {
     // SimulatedArena handles physics updates automatically
+    SimulatedArena.getInstance().simulationPeriodic();
+    IntakeSimulation.GamePieceContactListener();
+ 
   }
 
   @Override

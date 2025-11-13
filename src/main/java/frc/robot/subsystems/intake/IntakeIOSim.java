@@ -61,7 +61,16 @@ public class IntakeIOSim implements IntakeIO {
       intakeSimulation.stopIntake();
     }
   }
-
+  public void stopIntake() {
+    m_intakeVoltage = 0.0;
+    intakeSimulation.stopIntake();
+    System.out.println("Intake: Stopped ");
+  }
+  public void startIntake() {
+    m_intakeVoltage = 6.0;
+    intakeSimulation.startIntake();
+    System.out.println("Intake: Started");
+  }
   @Override
   public void setRunning(boolean runIntake) {
     if (runIntake) {
